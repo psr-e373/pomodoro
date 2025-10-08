@@ -536,96 +536,137 @@ renderAll();
 </script>
 
 <!-- ===== Firebase（Googleログイン＋Firestore同期） ===== -->
+<!-- ====== Firebase 同期ブロック：丸ごとこのまま貼り付け ====== -->
 <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore-compat.js"></script>
+
 <script>
-const firebaseConfig = {
-  apiKey: "AIzaSyD1aS6Csj1Cn2_FQ5FrWHlaNuWlPFqmeMs",
-  authDomain: "pomotodo-99d75.firebaseapp.com",
-  projectId: "pomotodo-99d75",
-  appId: "1:466809909425:web:97f9fda37b994d9e4f3290",
-};
-firebase.initializeApp(firebaseConfig);
+  // あなたの Firebase 設定（そのまま使用可）
+  const firebaseConfig = {
+    apiKey: "AIzaSyD1aS6Csj1Cn2_FQ5FrWHlaNuWlPFqmeMs",
+    authDomain: "pomotodo-99d75.firebaseapp.com",
+    projectId: "pomotodo-99d75",
+    appId: "1:466809909425:web:97f9fda37b994d9e4f3290",
+  };
 
-const who = document.getElementById('who');
-const btnGoogle = document.getElementById('btn-google');
-const btnSignout = document.getElementById('btn-signout');
+  if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db   = firebase.firestore();
 
-const auth = firebase.auth();
-const db   = firebase.firestore();
-
-let cloudDoc = null;  // users/{uid}/apps/pomotodo
-
-// サインイン/アウトUI
-btnGoogle.addEventListener('click', async () => {
-  try{
-    const provider = new firebase.auth.GoogleAuthProvider();
-    await auth.signInWithPopup(provider);
-  }catch(e){
-    alert('サインインに失敗しました: ' + e.message);
-  }
-});
-btnSignout.addEventListener('click', async () => {
-  await auth.signOut();
-});
-
-// 状態反映
-auth.onAuthStateChanged(async (user) => {
-  if (user) {
-    who.textContent = `${user.displayName || user.email} でログイン中`;
-    btnGoogle.style.display = 'none';
-    btnSignout.style.display = '';
-
-    cloudDoc = db.collection('users').doc(user.uid).collection('apps').doc('pomotodo');
-
-    // 初回同期：クラウドが新しければローカルを上書き
+  // localStorage のキー検出（固定にしたいなら 'pomotodo-state' 等に置換OK）
+  function detectStateKey(){
     try{
-      const snap = await cloudDoc.get();
-      const remote = snap.data()?.state;
-      const localTS  = state?._meta?.updatedAt || '';
-      const remoteTS = remote?._meta?.updatedAt || '';
-      if (remote && (!localTS || (remoteTS && remoteTS > localTS))) {
-        window.state = remote;
-        try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch(e){}
-        if (typeof renderAll === 'function') renderAll();
+      const cand=[];
+      for(let i=0;i<localStorage.length;i++){
+        const k=localStorage.key(i),v=localStorage.getItem(k);
+        try{
+          const o=JSON.parse(v);
+          if(o&&typeof o==='object'){
+            const s=(o.todos||o.tasks?5:0)+(o.history||o.calendar?3:0)+(o._meta?2:0)+(/pomo|todo|task/i.test(k)?2:0);
+            if(s>0)cand.push({k,score:s});
+          }
+        }catch{}
       }
-    }catch(e){ console.warn('cloud initial load failed', e); }
-
-    // save() をクラウド対応に差し替え（ローカル+クラウド二重保存）
-    const _origSave = window.save;
-    window.save = function(){
-      state._meta = { updatedAt: new Date().toISOString() };
-      try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch(e){}
-      if (cloudDoc) {
-        cloudDoc.set({ state, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge:true })
-          .catch(err => console.warn('cloud save failed', err));
-      }
-    };
-
-    // リアルタイム反映（別端末の更新を取り込む・単純な最終更新優先）
-    cloudDoc.onSnapshot(s => {
-      const remote = s.data()?.state;
-      if (!remote) return;
-      const localTS  = state?._meta?.updatedAt || '';
-      const remoteTS = remote?._meta?.updatedAt || '';
-      if (remoteTS && remoteTS !== localTS) {
-        window.state = remote;
-        try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch(e){}
-        if (typeof renderAll === 'function') renderAll();
-      }
-    });
-
-  } else {
-    who.textContent = '未ログイン';
-    btnGoogle.style.display = '';
-    btnSignout.style.display = 'none';
-    cloudDoc = null;
-
-    // ローカル専用の save に戻す
-    window.save = function(){ localStorage.setItem(STORE_KEY, JSON.stringify(state)); };
+      cand.sort((a,b)=>b.score-a.score);
+      return (cand[0]?.k)||'pomotodo-state';
+    }catch{return 'pomotodo-state'}
   }
-});
+  const LS_KEY = detectStateKey();
+
+  // 既存の保存をフックしてクラウドにも保存
+  const _origSetItem = localStorage.setItem.bind(localStorage);
+  localStorage.setItem = function(key, value){
+    _origSetItem(key, value);
+    if(key===LS_KEY){
+      try{
+        const st=JSON.parse(value);
+        if(st&&typeof st==='object'){
+          st._meta = Object.assign({}, st._meta, {updatedAt: Date.now()});
+          saveToCloud(st);
+        }
+      }catch{}
+    }
+  };
+
+  const getLocal = () => { try{ return JSON.parse(localStorage.getItem(LS_KEY)||'null'); }catch{ return null } };
+  const setLocal = (st) => { try{ _origSetItem(LS_KEY, JSON.stringify(st)); }catch{} };
+
+  // UIへ適用（STATE上書き→再描画）
+  function applyStateToUI(next){
+    if(!next||typeof next!=='object') return;
+    if('STATE' in window) window.STATE = next;   // グローバル状態があれば上書き
+    setLocal(next);
+    if(typeof window.renderAll==='function') window.renderAll();
+    if(typeof window.updateKPI==='function') window.updateKPI();
+    console.log('[sync] applied cloud → UI:', new Date(next?._meta?.updatedAt||0).toLocaleString());
+  }
+
+  // Firestore購読
+  let unsubscribeCloud=null;
+  function startCloudSync(uid){
+    if(unsubscribeCloud){unsubscribeCloud();unsubscribeCloud=null;}
+    if(!uid) return;
+    const ref = db.collection('users').doc(uid).collection('apps').doc('pomotodo');
+    unsubscribeCloud = ref.onSnapshot(snap=>{
+      if(!snap.exists) return;
+      const cloud=snap.data()?.state, local=getLocal();
+      const cTs=cloud?._meta?.updatedAt??0, lTs=local?._meta?.updatedAt??0;
+      if(cloud && cTs>lTs) applyStateToUI(cloud);
+    }, err=>console.warn('[sync] onSnapshot error:', err));
+  }
+
+  // クラウド保存
+  async function saveToCloud(state){
+    try{
+      const user=auth.currentUser; if(!user||!state) return;
+      const ref = db.collection('users').doc(user.uid).collection('apps').doc('pomotodo');
+      await ref.set({state},{merge:true});
+    }catch(e){ console.warn('[sync] saveToCloud failed:', e); }
+  }
+
+  // 手動保存用フック（必要ならあなたの save の中で呼んでもOK）
+  window._syncTouch = function(state){
+    if(!state||typeof state!=='object') return;
+    state._meta = Object.assign({}, state._meta, {updatedAt: Date.now()});
+    setLocal(state);
+    saveToCloud(state);
+  };
+
+  // 認証状態に追従（初回アップ/ダウンロード）
+  auth.onAuthStateChanged(async user=>{
+    if(unsubscribeCloud){unsubscribeCloud();unsubscribeCloud=null;}
+    const who = document.getElementById('who');
+    const btnGoogle  = document.getElementById('btn-google');
+    const btnSignout = document.getElementById('btn-signout');
+
+    if(user){
+      if(who) who.textContent = `${user.displayName || user.email} でログイン中`;
+      if(btnGoogle)  btnGoogle.style.display = 'none';
+      if(btnSignout) btnSignout.style.display = '';
+
+      startCloudSync(user.uid);
+
+      const local=getLocal();
+      if(local && (local._meta?.updatedAt??0)>0){
+        await saveToCloud(local); // ローカルのほうが新しい場合アップロード
+      }
+    }else{
+      if(who) who.textContent = '未ログイン';
+      if(btnGoogle)  btnGoogle.style.display = '';
+      if(btnSignout) btnSignout.style.display = 'none';
+    }
+  });
+
+  // 任意：ボタン結線（あれば）
+  (function(){
+    const loginBtn  = document.getElementById('btn-google');
+    const logoutBtn = document.getElementById('btn-signout');
+    if(loginBtn)  loginBtn.addEventListener('click', ()=>auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()));
+    if(logoutBtn) logoutBtn.addEventListener('click', ()=>auth.signOut());
+  })();
 </script>
+<!-- ====== /Firebase 同期ブロック ====== -->
+
 </body>
 </html>
