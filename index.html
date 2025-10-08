@@ -41,7 +41,6 @@
   .grid{display:grid;grid-template-columns:336px 1fr;gap:16px}
   @media (max-width:900px){.grid{grid-template-columns:1fr}}
 
-  /* timer */
   .timer-face{display:grid;place-items:center;padding:12px 16px 4px}
   .ring{width:260px;height:260px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(#2a334a var(--p),var(--accent) 0);filter:drop-shadow(0 8px 24px rgba(110,231,255,.25))}
   .ring::before{content:"";width:236px;height:236px;border-radius:50%;background:radial-gradient(110% 110% at 50% 0%,#1b2234,#0f1320)}
@@ -67,7 +66,6 @@
   label{font-size:13px;color:#9fb0ca}
   .hint{font-size:12px;color:#7c8aa5}
 
-  /* todo */
   .todo-input{display:grid;grid-template-columns:minmax(0,8fr) 92px 84px 96px 128px minmax(64px,max-content) max-content;gap:8px;row-gap:6px;align-items:center}
   .todo-input>div[aria-hidden="true"]{visibility:hidden}
   .ti-label{font-size:16px;color:#cbd5e1;line-height:1.2;margin:0 2px;white-space:nowrap}
@@ -203,52 +201,37 @@
 
   <footer>データはブラウザ（localStorage）＆ Googleサインイン時は Firestore に自動保存</footer>
 
-<!-- ===================== アプリ本体（シンプル実装） ===================== -->
+<!-- ===================== アプリ本体 ===================== -->
 <script>
 const STORE_KEY = 'pomotodo-state-v1';
+const DEFAULTS = { settings:{focus:25,short:5,long:15}, tasks:[], stats:{todayPomos:0,focusMin:0}, _meta:{updatedAt:Date.now()} };
+const $ = s=>document.querySelector(s);
 
-const DEFAULTS = {
-  settings: { focus:25, short:5, long:15 },
-  tasks: [],            // {id,title,est,done,due,repeat}
-  stats: { todayPomos:0, focusMin:0 },
-  _meta: { updatedAt: Date.now() }
-};
-
-const $ = sel => document.querySelector(sel);
-function load(){
-  try{ return JSON.parse(localStorage.getItem(STORE_KEY)) || structuredClone(DEFAULTS); }
-  catch{ return structuredClone(DEFAULTS); }
-}
-function save(st){
-  st._meta.updatedAt = Date.now();
-  localStorage.setItem(STORE_KEY, JSON.stringify(st));
-  renderAll();
-}
+function load(){ try{ return JSON.parse(localStorage.getItem(STORE_KEY)) || structuredClone(DEFAULTS);}catch{return structuredClone(DEFAULTS);} }
+function renderAll(){ renderTasks(); updateKPI(); setRing(); }
+function save(st){ st._meta.updatedAt=Date.now(); localStorage.setItem(STORE_KEY, JSON.stringify(st)); renderAll(); }
 let state = load();
 
-/* ===== タイマー（超シンプル） ===== */
+/* ===== タイマー（簡易） ===== */
 let t=null, remain=state.settings.focus*60, phase='集中', cycles=0, running=false;
-function fmt(s){const m=Math.floor(s/60), ss=("0"+(s%60)).slice(-2); return `${m}:${ss}`;}
-function setRing(){ const total = (phase==='集中')? state.settings.focus*60 : (phase==='短休憩'? state.settings.short*60:state.settings.long*60); const p = 360*(1-remain/total); $('#ring').style.setProperty('--p', p+'deg'); }
+function fmt(s){const m=Math.floor(s/60),ss=("0"+(s%60)).slice(-2);return `${m}:${ss}`;}
+function setRing(){ const total=(phase==='集中')?state.settings.focus*60:(phase==='短休憩'?state.settings.short*60:state.settings.long*60); const p=360*(1-remain/total); $('#ring').style.setProperty('--p',p+'deg'); }
 function start(){ if(running)return; running=true; t=setInterval(tick,1000); }
 function pause(){ running=false; clearInterval(t); }
 function reset(){ pause(); phase='集中'; remain=state.settings.focus*60; cycles=0; $('#phase').textContent=phase; $('#display').textContent=fmt(remain); setRing(); }
-function nextPhase(){ pause(); if(phase==='集中'){ cycles++; state.stats.todayPomos++; state.stats.focusMin += state.settings.focus; if(cycles%4===0){phase='長休憩'; remain=state.settings.long*60;}else{phase='短休憩'; remain=state.settings.short*60;} } else { phase='集中'; remain=state.settings.focus*60; } $('#phase').textContent=phase; $('#display').textContent=fmt(remain); setRing(); updateKPI(); save(state); }
+function nextPhase(){ pause(); if(phase==='集中'){ cycles++; state.stats.todayPomos++; state.stats.focusMin+=state.settings.focus; phase=(cycles%4===0)?'長休憩':'短休憩'; remain=(phase==='長休憩'?state.settings.long:state.settings.short)*60; }else{ phase='集中'; remain=state.settings.focus*60; } $('#phase').textContent=phase; $('#display').textContent=fmt(remain); setRing(); updateKPI(); save(state); }
 function tick(){ remain--; if(remain<=0){ nextPhase(); } $('#display').textContent=fmt(remain); setRing(); }
 $('#btn-start').onclick=start; $('#btn-pause').onclick=pause; $('#btn-reset').onclick=reset; $('#btn-skip').onclick=nextPhase;
-$('#len-focus').oninput=e=>{state.settings.focus=+e.target.value; save(state); reset();}
-$('#len-short').oninput=e=>{state.settings.short=+e.target.value; save(state); reset()}
-$('#len-long').oninput=e=>{state.settings.long=+e.target.value; save(state); reset()}
+$('#len-focus').oninput=e=>{state.settings.focus=+e.target.value; save(state); reset();};
+$('#len-short').oninput=e=>{state.settings.short=+e.target.value; save(state); reset();};
+$('#len-long').oninput=e=>{state.settings.long=+e.target.value; save(state); reset();};
 reset();
 
 /* ===== タスク ===== */
 function addTask(){
-  const title = $('#todo-input').value.trim();
-  if(!title) return;
-  const est = +$('#todo-est').value||0;
-  const rep = +$('#todo-repeat').value||0;
-  const due = $('#todo-date').value || null;
-  state.tasks.push({id:crypto.randomUUID(), title, est, repeat:rep, due, done:false, createdAt:Date.now()});
+  const title=$('#todo-input').value.trim(); if(!title)return;
+  const est=+$('#todo-est').value||0, rep=+$('#todo-repeat').value||0, due=$('#todo-date').value||null;
+  state.tasks.push({id:crypto.randomUUID(),title,est,repeat:rep,due,done:false,createdAt:Date.now()});
   $('#todo-input').value=''; $('#todo-est').value=0; $('#todo-repeat').value=0; $('#todo-date').value='';
   save(state);
 }
@@ -256,25 +239,22 @@ $('#add-todo').onclick=addTask;
 $('#todo-input').addEventListener('keydown',e=>{ if(e.key==='Enter') $('#todo-est').focus(); });
 
 function renderTasks(){
-  const tab = document.querySelector('.tab.active')?.dataset.tab || 'all';
-  const list = $('#todo-list'); list.innerHTML='';
+  const tab=document.querySelector('.tab.active')?.dataset.tab||'all';
+  const list=$('#todo-list'); list.innerHTML='';
   const todayStr = new Date().toISOString().slice(0,10);
-  let tasks = [...state.tasks];
-  if(tab==='today') tasks = tasks.filter(t=>!t.done && t.due && t.due <= todayStr);
-  if(tab==='tomorrow'){ const d=new Date(); d.setDate(d.getDate()+1); const s=d.toISOString().slice(0,10); tasks = tasks.filter(t=>!t.done && t.due===s); }
-  if(tab==='done') tasks = tasks.filter(t=>t.done);
-
-  // sort
-  const s = $('#sort-select').value;
-  const cmp = {
-    due_asc:(a,b)=>String(a.due||'9999') .localeCompare(String(b.due||'9999')),
-    due_desc:(a,b)=>String(b.due||'')    .localeCompare(String(a.due||'')),
+  let tasks=[...state.tasks];
+  if(tab==='today') tasks=tasks.filter(t=>!t.done && t.due && t.due<=todayStr);
+  if(tab==='tomorrow'){ const d=new Date(); d.setDate(d.getDate()+1); const s=d.toISOString().slice(0,10); tasks=tasks.filter(t=>!t.done && t.due===s); }
+  if(tab==='done') tasks=tasks.filter(t=>t.done);
+  const s=$('#sort-select').value;
+  const cmp={
+    due_asc:(a,b)=>String(a.due||'9999').localeCompare(String(b.due||'9999')),
+    due_desc:(a,b)=>String(b.due||'').localeCompare(String(a.due||'')),
     created:(a,b)=>a.createdAt-b.createdAt,
     title:(a,b)=>a.title.localeCompare(b.title),
     est_desc:(a,b)=>(b.est||0)-(a.est||0)
   }[s] || ((a,b)=>0);
   tasks.sort(cmp);
-
   for(const t of tasks){
     const li=document.createElement('li'); li.className='todo-item'+(t.done?' completed':'');
     li.innerHTML=`
@@ -289,7 +269,6 @@ function renderTasks(){
     li.querySelector('.btn-del').onclick=()=>{state.tasks=state.tasks.filter(x=>x.id!==t.id); save(state);};
     list.appendChild(li);
   }
-  // KPI等
   $('#task-count').textContent = state.tasks.length;
 }
 document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active')); b.classList.add('active'); renderTasks();});
@@ -299,17 +278,16 @@ $('#clear-done').onclick=()=>{state.tasks=state.tasks.filter(t=>!t.done); save(s
 
 function updateKPI(){
   $('#today-pomos').textContent = state.stats.todayPomos||0;
-  $('#focus-min').textContent = state.stats.focusMin||0;
+  $('#focus-min').textContent  = state.stats.focusMin||0;
   const todayStr = new Date().toISOString().slice(0,10);
   const planned = state.tasks.filter(t=>!t.done && t.due && t.due<=todayStr).reduce((a,b)=>a+(+b.est||0)*25,0);
   $('#total-planned').innerHTML = `<strong>今日の予定:</strong> ${planned}分`;
   $('#total-focused').innerHTML = `<strong>集中済:</strong> ${state.stats.focusMin||0}分`;
 }
-function renderAll(){ renderTasks(); updateKPI(); setRing(); }
 renderAll();
 </script>
 
-<!-- ===================== Firebase 同期（双方向・差分検知・SAVEラップ） ===================== -->
+<!-- ===================== Firebase 同期（無限ループ対策版） ===================== -->
 <script>
 (function(){
   const CFG = {
@@ -331,22 +309,27 @@ renderAll();
   }
 
   const LS_KEY = STORE_KEY;
-  const toTs = v => typeof v==='number'?v: (typeof v==='string'?Date.parse(v):0) || 0;
+  const toTs = v => typeof v==='number'?v:(typeof v==='string'?Date.parse(v):0)||0;
   const deepEq = (a,b)=>{ try{return JSON.stringify(a)===JSON.stringify(b);}catch{return false;} };
 
   function startSync(){
     const auth=firebase.auth(), db=firebase.firestore();
     const who = document.getElementById('who');
     const btnLogin = document.getElementById('btn-google');
-    const btnOut = document.getElementById('btn-signout');
-    if(btnLogin) btnLogin.onclick=()=>auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
-    if(btnOut) btnOut.onclick=()=>auth.signOut();
+    const btnOut   = document.getElementById('btn-signout');
 
-    // localStorage hook → クラウドへも保存
-    const _origSet = localStorage.setItem.bind(localStorage);
-    function setLocal(st){ try{ _origSet(LS_KEY, JSON.stringify(st)); }catch{} }
+    if(btnLogin) btnLogin.onclick=()=>auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
+    if(btnOut)   btnOut.onclick=()=>auth.signOut();
+
+    // ---- localStorage フック & サイレント書き込み（無限ループ対策）
+    const _origSet = localStorage.setItem.bind(localStorage);   // これで hook を回避できる
+    function setLocalSilent(st){ try{ _origSet(LS_KEY, JSON.stringify(st)); }catch{} } // フックしない
+    function setLocalUser(st){   try{ localStorage.setItem(LS_KEY, JSON.stringify(st)); }catch{} } // フックあり
+
+    // 既存の localStorage をフック：ユーザー操作の保存 → クラウドへ
+    const _hookedSet = localStorage.setItem.bind(localStorage);
     localStorage.setItem = function(k,v){
-      _origSet(k,v);
+      _hookedSet(k,v);
       if(k===LS_KEY){
         try{
           const st = JSON.parse(v);
@@ -358,14 +341,13 @@ renderAll();
       }
     };
 
-    // 既存 save をラップ（localStorage を経由しない保存も拾う）
+    // 既存 save をラップ：localStorage を通らない保存もクラウドへ
     if(!window.__SAVE_WRAPPED && typeof window.save==='function'){
       window.__SAVE_WRAPPED=true;
       const _origSave = window.save;
       window.save = function(...a){
         state._meta.updatedAt = Date.now();
-        setLocal(state);
-        saveToCloud(state);
+        setLocalUser(state);   // フックさせる（→クラウド保存）
         return _origSave.apply(this,a);
       };
     }
@@ -387,9 +369,10 @@ renderAll();
         if(!s.exists) return;
         const cloud=s.data()?.state;
         const cTs=toTs(cloud?._meta?.updatedAt), lTs=toTs(state?._meta?.updatedAt);
+        // クラウドが新しい or 内容差分あり → UI に適用（ただし「サイレント保存」でループ抑止）
         if(cloud && (cTs>=lTs || !deepEq(cloud,state))){
-          state = cloud; // ← 受け取りをそのまま採用
-          localStorage.setItem(LS_KEY, JSON.stringify(state)); // フックでクラウド保存は走らないよう直接origでもOK
+          state = cloud;
+          setLocalSilent(state);   // ← フックを回避（クラウドへ書き戻さない）
           renderAll();
           console.log('[sync] applied cloud → UI', cTs);
         }
@@ -400,14 +383,14 @@ renderAll();
       if(user){
         if(who) who.textContent=`${user.displayName||user.email} でログイン中`;
         if(btnLogin) btnLogin.style.display='none';
-        if(btnOut) btnOut.style.display='';
+        if(btnOut)   btnOut.style.display='';
         sub(user.uid);
-        // 初回：ローカルのほうが新しければアップロード
+        // 初回：ローカルが新しければアップロード
         if(toTs(state?._meta?.updatedAt)>0){ await saveToCloud(state); }
       }else{
         if(who) who.textContent='未ログイン';
         if(btnLogin) btnLogin.style.display='';
-        if(btnOut) btnOut.style.display='none';
+        if(btnOut)   btnOut.style.display='none';
         if(unsub){unsub();unsub=null;}
       }
     });
