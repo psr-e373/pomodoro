@@ -4,6 +4,8 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Pomodoro + TODO</title>
+<!-- 404対策：小さな内蔵favicon -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%230aa'/%3E%3Ctext x='32' y='40' font-size='28' text-anchor='middle' fill='white'%3EP%3C/text%3E%3C/svg%3E">
 <style>
   :root{
     --bg:#0f1115;--panel:#151924;--panel-2:#0f1320;
@@ -12,11 +14,7 @@
   }
   *{box-sizing:border-box}
   body{margin:0;background:linear-gradient(180deg,var(--bg),#0b0e13);color:var(--text);font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;}
-  .card{
-    background:linear-gradient(180deg,var(--panel),var(--panel-2));
-    border:1px solid #1f2739;border-radius:16px;
-    box-shadow:0 12px 24px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.03);
-  }
+  .card{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid #1f2739;border-radius:16px;box-shadow:0 12px 24px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.03);}
   .card .inner{padding:16px}
   .card h2{margin:0 0 8px;font-size:15px;color:#cbd5e1;letter-spacing:.2px}
   #todo-card h2{font-size:17px}
@@ -24,15 +22,9 @@
   .kpi.card .inner{padding:16px 18px;display:grid;grid-template-columns:1.1fr 1fr;gap:12px; align-items:center;}
   @media (max-width:900px){ .kpi.card .inner{ grid-template-columns:1fr; gap:12px } }
   .brand{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-  .brand-title{
-    font-weight:900;letter-spacing:.4px;margin:0;
-    background:linear-gradient(90deg,#eaf2ff,#bfe6ff 60%,#cdb8ff);
-    -webkit-background-clip:text;background-clip:text;color:transparent;
-    font-size:26px;line-height:1
-  }
+  .brand-title{font-weight:900;letter-spacing:.4px;margin:0;background:linear-gradient(90deg,#eaf2ff,#bfe6ff 60%,#cdb8ff);-webkit-background-clip:text;background-clip:text;color:transparent;font-size:26px;line-height:1}
   .badges{display:flex;gap:8px;flex-wrap:wrap}
   .badge{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:#d9e5ff;background:#0f1628;border:1px solid #24314a;border-radius:999px;padding:8px 12px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.03);white-space:nowrap}
-  .badge svg{width:14px;height:14px;opacity:.9}
   .totals{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
   .kpi-big{font-size:26px;font-weight:900;letter-spacing:.3px}
   .kpi-sub{font-size:14px;color:#a8b5cc}
@@ -40,7 +32,6 @@
   main{max-width:1080px;margin:0 auto;padding:8px 16px 24px;display:grid;gap:16px}
   .grid{display:grid;grid-template-columns:336px 1fr;gap:16px}
   @media (max-width:900px){.grid{grid-template-columns:1fr}}
-
   .timer-face{display:grid;place-items:center;padding:12px 16px 4px}
   .ring{width:260px;height:260px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(#2a334a var(--p),var(--accent) 0);filter:drop-shadow(0 8px 24px rgba(110,231,255,.25))}
   .ring::before{content:"";width:236px;height:236px;border-radius:50%;background:radial-gradient(110% 110% at 50% 0%,#1b2234,#0f1320)}
@@ -56,16 +47,11 @@
   .btn.accent{background:linear-gradient(180deg,#1b2f45,#15273f);border-color:#2f3e5c;box-shadow:0 0 0 2px rgba(167,139,250,.15) inset}
   .btn.ok{background:linear-gradient(180deg,#14312a,#10261f);border-color:#1c3d33;color:#ccffee}
   .btn.danger{background:linear-gradient(180deg,#3a1b25,#2b131b);border-color:#542735;color:#ffdbe3}
-  .btn[disabled]{opacity:.5; cursor:not-allowed}
-  .btn.icon{padding:9px 10px;display:inline-grid;place-items:center;border-radius:10px;min-width:38px}
-  .btn.icon svg{width:18px;height:18px;display:block}
-
   .row{display:flex;gap:10px;align-items:center}
   .row + .row{margin-top:10px}
   input[type="number"],input[type="text"],select{width:100%;background:#0f1422;border:1px solid #24314a;border-radius:10px;padding:10px 12px;color:#dbeafe;}
   label{font-size:13px;color:#9fb0ca}
   .hint{font-size:12px;color:#7c8aa5}
-
   .todo-input{display:grid;grid-template-columns:minmax(0,8fr) 92px 84px 96px 128px minmax(64px,max-content) max-content;gap:8px;row-gap:6px;align-items:center}
   .todo-input>div[aria-hidden="true"]{visibility:hidden}
   .ti-label{font-size:16px;color:#cbd5e1;line-height:1.2;margin:0 2px;white-space:nowrap}
@@ -73,20 +59,18 @@
   .repeat-cell{display:flex;align-items:center;gap:6px;white-space:nowrap}
   #todo-repeat{width:84px}.repeat-suffix{font-size:12px;color:#9fb0ca;white-space:nowrap}
   .date-input{width:128px;height:40px;background:#122034;border:1px solid #24314a;border-radius:10px;color:#dbeafe;padding:0 8px;cursor:pointer}
-  .date-input::-webkit-calendar-picker-indicator{filter:invert(1) opacity(.85);cursor:pointer}
   .selected-date-label{font-size:12px;color:#9fb0ca;white-space:nowrap}
-  .tabs{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;align-items:center;justify-content:space-between}
   .tab{padding:6px 10px;border-radius:999px;border:1px solid #2a334a;background:#0f1628;color:#cbd5e1;font-size:12px;cursor:pointer}
   .tab.active{background:#1b2a44;color:#e2e8f0;border-color:#3a4a6b}
   .sort-select{background:#0f1422;border:1px solid #24314a;border-radius:10px;color:#dbeafe;padding:8px 10px;font-size:12px}
   .todo-list{list-style:none;margin:0;padding:0}
-  .todo-item{display:flex;align-items:center;gap:10px;padding:10px;border:1px solid #22304a;border-radius:12px;background:#101728;overflow:hidden;transition:background-color .18s,border-color .18s,filter .18s,opacity .18s;flex-wrap:nowrap}
+  .todo-item{display:flex;align-items:center;gap:10px;padding:10px;border:1px solid #22304a;border-radius:12px;background:#101728}
   .todo-item + .todo-item{margin-top:8px}
   .todo-item.completed{background:#070b12;border-color:#0f1a2d;filter:saturate(.2) brightness(.55) contrast(1.06)}
   .todo-item.completed .todo-title{text-decoration:line-through;color:#7a8699}
   .todo-title{flex:1 1 320px;min-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .todo-actions{display:flex;gap:6px;white-space:nowrap;flex:0 0 auto;margin-left:auto}
-  .chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:4px 8px;border-radius:999px;border:1px solid #24314a;background:#0f1628;color:#cbd5e1;white-space:nowrap}
+  .todo-actions{display:flex;gap:6px;margin-left:auto}
+  .chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:4px 8px;border-radius:999px;border:1px solid #24314a;background:#0f1628;color:#cbd5e1}
   .date-sep{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:10px 14px;margin:20px 0 12px;border:1px dashed #3a4a6b;background:linear-gradient(180deg,#0f1b30,#0b1424);border-radius:12px;color:#e2e8f0;font-size:15px}
   .date-sep .total{color:#aab7d1;font-size:17px;font-weight:800}
   footer{padding:8px 16px 24px;color:#6b7280;text-align:center;font-size:12px}
@@ -94,112 +78,107 @@
 </head>
 <body>
 
-  <!-- ===== KPI（ヘッダー） ===== -->
-  <header class="kpi">
-    <section class="card kpi">
+<header class="kpi">
+  <section class="card kpi">
+    <div class="inner">
+      <div class="brand">
+        <h1 class="brand-title">Pomodoro + TODO</h1>
+        <div class="badges">
+          <span class="badge">⏱ 今日のポモドーロ: <b id="today-pomos">0</b></span>
+          <span class="badge">➕ フォーカス合計: <b id="focus-min">0</b>分</span>
+          <span class="badge">☑️ タスク: <b id="task-count">0</b></span>
+        </div>
+      </div>
+      <div class="totals">
+        <div class="kpi-big accent-grad" id="total-planned"><strong>今日の予定:</strong> 0分</div>
+        <div class="kpi-big accent-grad" id="total-focused"><strong>集中済:</strong> 0分</div>
+        <div class="kpi-sub">※ 今日の予定＝「日付が今日まで」の未完タスク（過去分も含む）の見積合計</div>
+      </div>
+    </div>
+  </section>
+</header>
+
+<main>
+  <div class="grid">
+    <section class="card" id="timer-card">
       <div class="inner">
-        <div class="brand">
-          <h1 class="brand-title">Pomodoro + TODO</h1>
-          <div class="badges">
-            <span class="badge" id="stat-today">⏱ 今日のポモドーロ: <b id="today-pomos">0</b></span>
-            <span class="badge" id="stat-focus">➕ フォーカス合計: <b id="focus-min">0</b>分</span>
-            <span class="badge" id="stat-tasks">☑️ タスク: <b id="task-count">0</b></span>
+        <div id="focus-title" class="focus-title empty">（集中するタスク未選択）</div>
+        <h2>タイマー</h2>
+        <div class="timer-face">
+          <div class="ring" id="ring" style="--p:0deg; position:relative;">
+            <div class="time">
+              <h3 id="display">25:00</h3>
+              <p class="phase" id="phase">集中</p>
+            </div>
           </div>
         </div>
-        <div class="totals">
-          <div class="kpi-big accent-grad" id="total-planned"><strong>今日の予定:</strong> 0分</div>
-          <div class="kpi-big accent-grad" id="total-focused"><strong>集中済:</strong> 0分</div>
-          <div class="kpi-sub">※ 今日の予定＝「日付が今日まで」の未完タスク（過去分も含む）の見積合計</div>
+        <div class="timer-controls">
+          <button class="btn primary" id="btn-start">▶ 集中開始</button>
+          <button class="btn" id="btn-pause">⏸ 一時停止</button>
+          <button class="btn danger" id="btn-reset">⟲ リセット</button>
+          <button class="btn ok" id="btn-skip">⤴ 次のフェーズ</button>
+          <button class="btn accent" id="btn-google">🔔 Googleでサインイン</button>
+          <button class="btn danger" id="btn-signout" style="display:none;">サインアウト</button>
+        </div>
+        <div class="row">
+          <label style="width:33%">集中 (分)<input type="number" id="len-focus" min="1" value="25"></label>
+          <label style="width:33%">短休憩 (分)<input type="number" id="len-short" min="1" value="5"></label>
+          <label style="width:34%">長休憩 (分)<input type="number" id="len-long" min="1" value="15"></label>
+        </div>
+        <div class="row"><span class="hint">4セッションごとに長休憩</span><span id="who" style="margin-left:auto;color:#9fb0ca"></span></div>
+      </div>
+    </section>
+
+    <section class="card" id="todo-card">
+      <div class="inner">
+        <h2>タスクリスト</h2>
+
+        <div class="todo-input">
+          <div class="ti-label bold">タスク</div>
+          <div class="ti-label bold">セット数</div>
+          <div class="ti-label bold">繰り返し</div>
+          <div class="ti-label" aria-hidden="true"></div>
+          <div class="ti-label bold" style="grid-column: span 2;">期日</div>
+          <div class="ti-label" aria-hidden="true"></div>
+
+          <input id="todo-input" type="text" placeholder="やること（Enterで見積へ）">
+          <input id="todo-est" type="number" min="0" value="0" title="見積セット数" placeholder="見積セット">
+          <div class="repeat-cell">
+            <input id="todo-repeat" type="number" min="0" value="0" title="繰り返し（日数）" placeholder="0">
+            <span class="repeat-suffix">日ごと</span>
+          </div>
+          <div aria-hidden="true"></div>
+          <input id="todo-date" type="date" class="date-input" title="予定日を選択">
+          <span id="picked-date-label" class="selected-date-label">予定: -</span>
+          <button class="btn ok" id="add-todo">追加</button>
+        </div>
+
+        <div class="row" style="margin-top:8px;gap:8px;flex-wrap:wrap">
+          <button type="button" class="tab active" data-tab="all">すべて</button>
+          <button type="button" class="tab" data-tab="today">今日</button>
+          <button type="button" class="tab" data-tab="tomorrow">明日</button>
+          <button type="button" class="tab" data-tab="done">完了済み</button>
+          <select id="sort-select" class="sort-select" title="並び替え" style="margin-left:auto">
+            <option value="due_asc">ソート: 期限 昇順</option>
+            <option value="due_desc">ソート: 期限 降順</option>
+            <option value="created">ソート: 追加順</option>
+            <option value="title">ソート: タイトル A→Z</option>
+            <option value="est_desc">ソート: 見積(セット) 多い順</option>
+          </select>
+        </div>
+
+        <ul class="todo-list" id="todo-list" style="margin-top:12px"></ul>
+
+        <div class="row" style="margin-top:12px">
+          <button class="btn" id="clear-done">完了タスクを非表示</button>
+          <button class="btn danger" id="clear-all">未完タスクをすべて削除</button>
         </div>
       </div>
     </section>
-  </header>
+  </div>
+</main>
 
-  <main>
-    <div class="grid">
-      <!-- ===== タイマー ===== -->
-      <section class="card" id="timer-card">
-        <div class="inner">
-          <div id="focus-title" class="focus-title empty">（集中するタスク未選択）</div>
-          <h2>タイマー</h2>
-          <div class="timer-face">
-            <div class="ring" id="ring" style="--p:0deg; position:relative;">
-              <div class="time">
-                <h3 id="display">25:00</h3>
-                <p class="phase" id="phase">集中</p>
-              </div>
-            </div>
-          </div>
-          <div class="timer-controls">
-            <button class="btn primary" id="btn-start">▶ 集中開始</button>
-            <button class="btn" id="btn-pause">⏸ 一時停止</button>
-            <button class="btn danger" id="btn-reset">⟲ リセット</button>
-            <button class="btn ok" id="btn-skip">⤴ 次のフェーズ</button>
-            <button class="btn accent" id="btn-google">🔔 Googleでサインイン</button>
-            <button class="btn danger" id="btn-signout" style="display:none;">サインアウト</button>
-          </div>
-          <div class="row">
-            <label style="width:33%">集中 (分)<input type="number" id="len-focus" min="1" value="25"></label>
-            <label style="width:33%">短休憩 (分)<input type="number" id="len-short" min="1" value="5"></label>
-            <label style="width:34%">長休憩 (分)<input type="number" id="len-long" min="1" value="15"></label>
-          </div>
-          <div class="row"><span class="hint">4セッションごとに長休憩</span><span id="who" style="margin-left:auto;color:#9fb0ca"></span></div>
-        </div>
-      </section>
-
-      <!-- ===== タスクリスト ===== -->
-      <section class="card" id="todo-card">
-        <div class="inner">
-          <h2>タスクリスト</h2>
-
-          <div class="todo-input">
-            <div class="ti-label bold">タスク</div>
-            <div class="ti-label bold">セット数</div>
-            <div class="ti-label bold">繰り返し</div>
-            <div class="ti-label" aria-hidden="true"></div>
-            <div class="ti-label bold" style="grid-column: span 2;">期日</div>
-            <div class="ti-label" aria-hidden="true"></div>
-
-            <input id="todo-input" type="text" placeholder="やること（Enterで見積へ）">
-            <input id="todo-est" type="number" min="0" value="0" title="見積セット数" placeholder="見積セット">
-            <div class="repeat-cell">
-              <input id="todo-repeat" type="number" min="0" value="0" title="繰り返し（日数）" placeholder="0">
-              <span class="repeat-suffix">日ごと</span>
-            </div>
-            <div aria-hidden="true"></div>
-            <input id="todo-date" type="date" class="date-input" title="予定日を選択">
-            <span id="picked-date-label" class="selected-date-label">予定: -</span>
-            <button class="btn ok" id="add-todo">追加</button>
-          </div>
-
-          <div class="tabs">
-            <div class="tabs-left">
-              <button type="button" class="tab active" data-tab="all">すべて</button>
-              <button type="button" class="tab" data-tab="today">今日</button>
-              <button type="button" class="tab" data-tab="tomorrow">明日</button>
-              <button type="button" class="tab" data-tab="done">完了済み</button>
-            </div>
-            <select id="sort-select" class="sort-select" title="並び替え">
-              <option value="due_asc">ソート: 期限 昇順</option>
-              <option value="due_desc">ソート: 期限 降順</option>
-              <option value="created">ソート: 追加順</option>
-              <option value="title">ソート: タイトル A→Z</option>
-              <option value="est_desc">ソート: 見積(セット) 多い順</option>
-            </select>
-          </div>
-
-          <ul class="todo-list" id="todo-list" style="margin-top:12px"></ul>
-
-          <div class="row" style="margin-top:12px">
-            <button class="btn" id="clear-done">完了タスクを非表示</button>
-            <button class="btn danger" id="clear-all">未完タスクをすべて削除</button>
-          </div>
-        </div>
-      </section>
-    </div>
-  </main>
-
-  <footer>データはブラウザ（localStorage）＆ Googleサインイン時は Firestore に自動保存</footer>
+<footer>データはブラウザ（localStorage）＆ Googleサインイン時は Firestore に自動保存</footer>
 
 <!-- ===================== アプリ本体 ===================== -->
 <script>
@@ -287,7 +266,7 @@ function updateKPI(){
 renderAll();
 </script>
 
-<!-- ===================== Firebase 同期（無限ループ対策版） ===================== -->
+<!-- ===================== Firebase 同期（サニタイズ + デバウンス + 無限ループ抑止） ===================== -->
 <script>
 (function(){
   const CFG = {
@@ -312,6 +291,18 @@ renderAll();
   const toTs = v => typeof v==='number'?v:(typeof v==='string'?Date.parse(v):0)||0;
   const deepEq = (a,b)=>{ try{return JSON.stringify(a)===JSON.stringify(b);}catch{return false;} };
 
+  // Firestoreが嫌う値を排除/変換（undefined -> null、関数/シンボルは除去）
+  function sanitize(obj){
+    return JSON.parse(JSON.stringify(obj, (_k,v)=>{
+      if (typeof v === 'function' || typeof v === 'symbol' || typeof v === 'bigint') return undefined;
+      if (v === undefined) return null;
+      return v;
+    }));
+  }
+
+  // デバウンスユーティリティ
+  function debounce(fn,ms){ let id; return (...a)=>{ clearTimeout(id); id=setTimeout(()=>fn(...a),ms); }; }
+
   function startSync(){
     const auth=firebase.auth(), db=firebase.firestore();
     const who = document.getElementById('who');
@@ -321,44 +312,43 @@ renderAll();
     if(btnLogin) btnLogin.onclick=()=>auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
     if(btnOut)   btnOut.onclick=()=>auth.signOut();
 
-    // ---- localStorage フック & サイレント書き込み（無限ループ対策）
-    const _origSet = localStorage.setItem.bind(localStorage);   // これで hook を回避できる
-    function setLocalSilent(st){ try{ _origSet(LS_KEY, JSON.stringify(st)); }catch{} } // フックしない
-    function setLocalUser(st){   try{ localStorage.setItem(LS_KEY, JSON.stringify(st)); }catch{} } // フックあり
-
-    // 既存の localStorage をフック：ユーザー操作の保存 → クラウドへ
+    const _origSet = localStorage.setItem.bind(localStorage);   // hook回避用（サイレント）
+    const setLocalSilent = st => { try{ _origSet(LS_KEY, JSON.stringify(st)); }catch{} };
     const _hookedSet = localStorage.setItem.bind(localStorage);
     localStorage.setItem = function(k,v){
       _hookedSet(k,v);
       if(k===LS_KEY){
         try{
-          const st = JSON.parse(v);
-          if(st && typeof st==='object'){
-            st._meta = Object.assign({}, st._meta, {updatedAt: Date.now()});
-            saveToCloud(st);
+          const raw = JSON.parse(v);
+          if(raw && typeof raw==='object'){
+            raw._meta = Object.assign({}, raw._meta, {updatedAt: Date.now()});
+            scheduleCloudSave(raw);
           }
         }catch{}
       }
     };
 
-    // 既存 save をラップ：localStorage を通らない保存もクラウドへ
+    // 既存saveをラップ
     if(!window.__SAVE_WRAPPED && typeof window.save==='function'){
       window.__SAVE_WRAPPED=true;
       const _origSave = window.save;
       window.save = function(...a){
         state._meta.updatedAt = Date.now();
-        setLocalUser(state);   // フックさせる（→クラウド保存）
+        localStorage.setItem(LS_KEY, JSON.stringify(state)); // ← こちらはhookあり（→クラウド保存）
         return _origSave.apply(this,a);
       };
     }
 
-    async function saveToCloud(st){
+    // デバウンス付きクラウド保存
+    const _saveCore = async (st)=>{
       try{
         const user=auth.currentUser; if(!user) return;
         const ref=db.collection('users').doc(user.uid).collection('apps').doc('pomotodo');
-        await ref.set({state:st},{merge:true});
+        const clean = sanitize(st);
+        await ref.set({state:clean},{merge:true});
       }catch(e){ console.warn('[sync] saveToCloud failed:', e); }
-    }
+    };
+    const scheduleCloudSave = debounce(_saveCore, 700);
 
     let unsub=null;
     function sub(uid){
@@ -369,10 +359,9 @@ renderAll();
         if(!s.exists) return;
         const cloud=s.data()?.state;
         const cTs=toTs(cloud?._meta?.updatedAt), lTs=toTs(state?._meta?.updatedAt);
-        // クラウドが新しい or 内容差分あり → UI に適用（ただし「サイレント保存」でループ抑止）
         if(cloud && (cTs>=lTs || !deepEq(cloud,state))){
           state = cloud;
-          setLocalSilent(state);   // ← フックを回避（クラウドへ書き戻さない）
+          setLocalSilent(state); // ← フックを回避（再保存しない）
           renderAll();
           console.log('[sync] applied cloud → UI', cTs);
         }
@@ -385,8 +374,8 @@ renderAll();
         if(btnLogin) btnLogin.style.display='none';
         if(btnOut)   btnOut.style.display='';
         sub(user.uid);
-        // 初回：ローカルが新しければアップロード
-        if(toTs(state?._meta?.updatedAt)>0){ await saveToCloud(state); }
+        // 初回：ローカルがあればアップロード（サニタイズして1回だけ）
+        if(toTs(state?._meta?.updatedAt)>0){ scheduleCloudSave(state); }
       }else{
         if(who) who.textContent='未ログイン';
         if(btnLogin) btnLogin.style.display='';
