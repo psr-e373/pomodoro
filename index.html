@@ -7,20 +7,16 @@
 <!-- 404対策：小さな内蔵favicon -->
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%230aa'/%3E%3Ctext x='32' y='40' font-size='28' text-anchor='middle' fill='white'%3EP%3C/text%3E%3C/svg%3E">
 <style>
-  :root{
-    --bg:#0f1115;--panel:#151924;--panel-2:#0f1320;
-    --accent:#6ee7ff;--accent-2:#a78bfa;
-    --text:#eef2ff;--muted:#94a3b8;--danger:#fb7185;--ok:#34d399;
-  }
+  :root{--bg:#0f1115;--panel:#151924;--panel-2:#0f1320;--accent:#6ee7ff;--accent-2:#a78bfa;--text:#eef2ff;--muted:#94a3b8;--danger:#fb7185;--ok:#34d399}
   *{box-sizing:border-box}
-  body{margin:0;background:linear-gradient(180deg,var(--bg),#0b0e13);color:var(--text);font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;}
-  .card{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid #1f2739;border-radius:16px;box-shadow:0 12px 24px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.03);}
+  body{margin:0;background:linear-gradient(180deg,var(--bg),#0b0e13);color:var(--text);font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif}
+  .card{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid #1f2739;border-radius:16px;box-shadow:0 12px 24px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.03)}
   .card .inner{padding:16px}
   .card h2{margin:0 0 8px;font-size:15px;color:#cbd5e1;letter-spacing:.2px}
   #todo-card h2{font-size:17px}
-  header.kpi{max-width:1080px;margin:16px auto 8px;padding:0 16px;}
-  .kpi.card .inner{padding:16px 18px;display:grid;grid-template-columns:1.1fr 1fr;gap:12px; align-items:center;}
-  @media (max-width:900px){ .kpi.card .inner{ grid-template-columns:1fr; gap:12px } }
+  header.kpi{max-width:1080px;margin:16px auto 8px;padding:0 16px}
+  .kpi.card .inner{padding:16px 18px;display:grid;grid-template-columns:1.1fr 1fr;gap:12px;align-items:center}
+  @media (max-width:900px){.kpi.card .inner{grid-template-columns:1fr;gap:12px}}
   .brand{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
   .brand-title{font-weight:900;letter-spacing:.4px;margin:0;background:linear-gradient(90deg,#eaf2ff,#bfe6ff 60%,#cdb8ff);-webkit-background-clip:text;background-clip:text;color:transparent;font-size:26px;line-height:1}
   .badges{display:flex;gap:8px;flex-wrap:wrap}
@@ -49,7 +45,7 @@
   .btn.danger{background:linear-gradient(180deg,#3a1b25,#2b131b);border-color:#542735;color:#ffdbe3}
   .row{display:flex;gap:10px;align-items:center}
   .row + .row{margin-top:10px}
-  input[type="number"],input[type="text"],select{width:100%;background:#0f1422;border:1px solid #24314a;border-radius:10px;padding:10px 12px;color:#dbeafe;}
+  input[type="number"],input[type="text"],select{width:100%;background:#0f1422;border:1px solid #24314a;border-radius:10px;padding:10px 12px;color:#dbeafe}
   label{font-size:13px;color:#9fb0ca}
   .hint{font-size:12px;color:#7c8aa5}
   .todo-input{display:grid;grid-template-columns:minmax(0,8fr) 92px 84px 96px 128px minmax(64px,max-content) max-content;gap:8px;row-gap:6px;align-items:center}
@@ -182,205 +178,185 @@
 
 <!-- ===================== アプリ本体 ===================== -->
 <script>
-const STORE_KEY = 'pomotodo-state-v1';
-const DEFAULTS = { settings:{focus:25,short:5,long:15}, tasks:[], stats:{todayPomos:0,focusMin:0}, _meta:{updatedAt:Date.now()} };
-const $ = s=>document.querySelector(s);
+const STORE_KEY='pomotodo-state-v1';
+const DEFAULTS={settings:{focus:25,short:5,long:15},tasks:[],stats:{todayPomos:0,focusMin:0},_meta:{updatedAt:Date.now()}};
+const $=s=>document.querySelector(s);
 
-function load(){ try{ return JSON.parse(localStorage.getItem(STORE_KEY)) || structuredClone(DEFAULTS);}catch{return structuredClone(DEFAULTS);} }
-function renderAll(){ renderTasks(); updateKPI(); setRing(); }
-function save(st){ st._meta.updatedAt=Date.now(); localStorage.setItem(STORE_KEY, JSON.stringify(st)); renderAll(); }
-let state = load();
+function load(){try{return JSON.parse(localStorage.getItem(STORE_KEY))||structuredClone(DEFAULTS);}catch{return structuredClone(DEFAULTS)}}
+function renderAll(){renderTasks();updateKPI();setRing()}
+function save(st){st._meta.updatedAt=Date.now();localStorage.setItem(STORE_KEY,JSON.stringify(st));renderAll()}
+let state=load();
 
-/* ===== タイマー（簡易） ===== */
-let t=null, remain=state.settings.focus*60, phase='集中', cycles=0, running=false;
-function fmt(s){const m=Math.floor(s/60),ss=("0"+(s%60)).slice(-2);return `${m}:${ss}`;}
-function setRing(){ const total=(phase==='集中')?state.settings.focus*60:(phase==='短休憩'?state.settings.short*60:state.settings.long*60); const p=360*(1-remain/total); $('#ring').style.setProperty('--p',p+'deg'); }
-function start(){ if(running)return; running=true; t=setInterval(tick,1000); }
-function pause(){ running=false; clearInterval(t); }
-function reset(){ pause(); phase='集中'; remain=state.settings.focus*60; cycles=0; $('#phase').textContent=phase; $('#display').textContent=fmt(remain); setRing(); }
-function nextPhase(){ pause(); if(phase==='集中'){ cycles++; state.stats.todayPomos++; state.stats.focusMin+=state.settings.focus; phase=(cycles%4===0)?'長休憩':'短休憩'; remain=(phase==='長休憩'?state.settings.long:state.settings.short)*60; }else{ phase='集中'; remain=state.settings.focus*60; } $('#phase').textContent=phase; $('#display').textContent=fmt(remain); setRing(); updateKPI(); save(state); }
-function tick(){ remain--; if(remain<=0){ nextPhase(); } $('#display').textContent=fmt(remain); setRing(); }
-$('#btn-start').onclick=start; $('#btn-pause').onclick=pause; $('#btn-reset').onclick=reset; $('#btn-skip').onclick=nextPhase;
-$('#len-focus').oninput=e=>{state.settings.focus=+e.target.value; save(state); reset();};
-$('#len-short').oninput=e=>{state.settings.short=+e.target.value; save(state); reset();};
-$('#len-long').oninput=e=>{state.settings.long=+e.target.value; save(state); reset();};
+/* ===== タイマー ===== */
+let t=null,remain=state.settings.focus*60,phase='集中',cycles=0,running=false;
+function fmt(s){const m=Math.floor(s/60),ss=("0"+(s%60)).slice(-2);return `${m}:${ss}`}
+function setRing(){const total=(phase==='集中')?state.settings.focus*60:(phase==='短休憩'?state.settings.short*60:state.settings.long*60);const p=360*(1-remain/total);$('#ring').style.setProperty('--p',p+'deg')}
+function start(){if(running)return;running=true;t=setInterval(tick,1000)}
+function pause(){running=false;clearInterval(t)}
+function reset(){pause();phase='集中';remain=state.settings.focus*60;cycles=0;$('#phase').textContent=phase;$('#display').textContent=fmt(remain);setRing()}
+function nextPhase(){pause();if(phase==='集中'){cycles++;state.stats.todayPomos++;state.stats.focusMin+=state.settings.focus;phase=(cycles%4===0)?'長休憩':'短休憩';remain=(phase==='長休憩'?state.settings.long:state.settings.short)*60}else{phase='集中';remain=state.settings.focus*60}$('#phase').textContent=phase;$('#display').textContent=fmt(remain);setRing();updateKPI();save(state)}
+function tick(){remain--;if(remain<=0){nextPhase()}$('#display').textContent=fmt(remain);setRing()}
+$('#btn-start').onclick=start;$('#btn-pause').onclick=pause;$('#btn-reset').onclick=reset;$('#btn-skip').onclick=nextPhase;
+$('#len-focus').oninput=e=>{state.settings.focus=+e.target.value;save(state);reset()};$('#len-short').oninput=e=>{state.settings.short=+e.target.value;save(state);reset()};$('#len-long').oninput=e=>{state.settings.long=+e.target.value;save(state);reset()};
 reset();
 
 /* ===== タスク ===== */
-function addTask(){
-  const title=$('#todo-input').value.trim(); if(!title)return;
-  const est=+$('#todo-est').value||0, rep=+$('#todo-repeat').value||0, due=$('#todo-date').value||null;
-  state.tasks.push({id:crypto.randomUUID(),title,est,repeat:rep,due,done:false,createdAt:Date.now()});
-  $('#todo-input').value=''; $('#todo-est').value=0; $('#todo-repeat').value=0; $('#todo-date').value='';
-  save(state);
-}
+function addTask(){const title=$('#todo-input').value.trim();if(!title)return;const est=+$('#todo-est').value||0,rep=+$('#todo-repeat').value||0,due=$('#todo-date').value||null;state.tasks.push({id:crypto.randomUUID(),title,est,repeat:rep,due,done:false,createdAt:Date.now()});$('#todo-input').value='';$('#todo-est').value=0;$('#todo-repeat').value=0;$('#todo-date').value='';save(state)}
 $('#add-todo').onclick=addTask;
-$('#todo-input').addEventListener('keydown',e=>{ if(e.key==='Enter') $('#todo-est').focus(); });
+$('#todo-input').addEventListener('keydown',e=>{if(e.key==='Enter')$('#todo-est').focus()});
 
 function renderTasks(){
   const tab=document.querySelector('.tab.active')?.dataset.tab||'all';
-  const list=$('#todo-list'); list.innerHTML='';
-  const todayStr = new Date().toISOString().slice(0,10);
+  const list=$('#todo-list');list.innerHTML='';
+  const todayStr=new Date().toISOString().slice(0,10);
   let tasks=[...state.tasks];
-  if(tab==='today') tasks=tasks.filter(t=>!t.done && t.due && t.due<=todayStr);
-  if(tab==='tomorrow'){ const d=new Date(); d.setDate(d.getDate()+1); const s=d.toISOString().slice(0,10); tasks=tasks.filter(t=>!t.done && t.due===s); }
-  if(tab==='done') tasks=tasks.filter(t=>t.done);
+  if(tab==='today')tasks=tasks.filter(t=>!t.done&&t.due&&t.due<=todayStr);
+  if(tab==='tomorrow'){const d=new Date();d.setDate(d.getDate()+1);const s=d.toISOString().slice(0,10);tasks=tasks.filter(t=>!t.done&&t.due===s)}
+  if(tab==='done')tasks=tasks.filter(t=>t.done);
   const s=$('#sort-select').value;
-  const cmp={
-    due_asc:(a,b)=>String(a.due||'9999').localeCompare(String(b.due||'9999')),
-    due_desc:(a,b)=>String(b.due||'').localeCompare(String(a.due||'')),
-    created:(a,b)=>a.createdAt-b.createdAt,
-    title:(a,b)=>a.title.localeCompare(b.title),
-    est_desc:(a,b)=>(b.est||0)-(a.est||0)
-  }[s] || ((a,b)=>0);
+  const cmp={due_asc:(a,b)=>String(a.due||'9999').localeCompare(String(b.due||'9999')),due_desc:(a,b)=>String(b.due||'').localeCompare(String(a.due||'')),created:(a,b)=>a.createdAt-b.createdAt,title:(a,b)=>a.title.localeCompare(b.title),est_desc:(a,b)=>(b.est||0)-(a.est||0)}[s]||((a,b)=>0);
   tasks.sort(cmp);
   for(const t of tasks){
-    const li=document.createElement('li'); li.className='todo-item'+(t.done?' completed':'');
-    li.innerHTML=`
-      <span class="todo-title">${t.title}</span>
+    const li=document.createElement('li');li.className='todo-item'+(t.done?' completed':'');
+    li.innerHTML=`<span class="todo-title">${t.title}</span>
       <span class="chip">セット:${t.est||0}</span>
       ${t.due?`<span class="chip">期日:${t.due}</span>`:''}
       <span class="todo-actions">
         <button class="btn ok btn-done">${t.done?'未完':'完了'}</button>
         <button class="btn danger btn-del">削除</button>
       </span>`;
-    li.querySelector('.btn-done').onclick=()=>{t.done=!t.done; save(state);};
-    li.querySelector('.btn-del').onclick=()=>{state.tasks=state.tasks.filter(x=>x.id!==t.id); save(state);};
+    li.querySelector('.btn-done').onclick=()=>{t.done=!t.done;save(state)};
+    li.querySelector('.btn-del').onclick=()=>{state.tasks=state.tasks.filter(x=>x.id!==t.id);save(state)};
     list.appendChild(li);
   }
-  $('#task-count').textContent = state.tasks.length;
+  $('#task-count').textContent=state.tasks.length;
 }
-document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active')); b.classList.add('active'); renderTasks();});
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderTasks()});
 $('#sort-select').onchange=renderTasks;
-$('#clear-all').onclick=()=>{state.tasks=state.tasks.filter(t=>t.done); save(state);};
-$('#clear-done').onclick=()=>{state.tasks=state.tasks.filter(t=>!t.done); save(state);};
+$('#clear-all').onclick=()=>{state.tasks=state.tasks.filter(t=>t.done);save(state)};
+$('#clear-done').onclick=()=>{state.tasks=state.tasks.filter(t=>!t.done);save(state)};
 
 function updateKPI(){
-  $('#today-pomos').textContent = state.stats.todayPomos||0;
-  $('#focus-min').textContent  = state.stats.focusMin||0;
-  const todayStr = new Date().toISOString().slice(0,10);
-  const planned = state.tasks.filter(t=>!t.done && t.due && t.due<=todayStr).reduce((a,b)=>a+(+b.est||0)*25,0);
-  $('#total-planned').innerHTML = `<strong>今日の予定:</strong> ${planned}分`;
-  $('#total-focused').innerHTML = `<strong>集中済:</strong> ${state.stats.focusMin||0}分`;
+  $('#today-pomos').textContent=state.stats.todayPomos||0;
+  $('#focus-min').textContent=state.stats.focusMin||0;
+  const todayStr=new Date().toISOString().slice(0,10);
+  const planned=state.tasks.filter(t=>!t.done&&t.due&&t.due<=todayStr).reduce((a,b)=>a+(+b.est||0)*25,0);
+  $('#total-planned').innerHTML=`<strong>今日の予定:</strong> ${planned}分`;
+  $('#total-focused').innerHTML=`<strong>集中済:</strong> ${state.stats.focusMin||0}分`;
 }
 renderAll();
 </script>
 
-<!-- ===================== Firebase 同期（サニタイズ + デバウンス + 無限ループ抑止） ===================== -->
+<!-- ===================== Firebase 同期（Safari対応・サニタイズ・デバウンス・無限ループ抑止） ===================== -->
 <script>
 (function(){
-  const CFG = {
-    apiKey: "AIzaSyD1aS6Csj1Cn2_FQ5FrWHlaNuWlPFqmeMs",
-    authDomain: "pomotodo-99d75.firebaseapp.com",
-    projectId: "pomotodo-99d75",
-    appId: "1:466809909425:web:97f9fda37b994d9e4f3290",
-  };
-  const SDKS = [
+  const CFG={apiKey:"AIzaSyD1aS6Csj1Cn2_FQ5FrWHlaNuWlPFqmeMs",authDomain:"pomotodo-99d75.firebaseapp.com",projectId:"pomotodo-99d75",appId:"1:466809909425:web:97f9fda37b994d9e4f3290"};
+  const SDKS=[
     "https://www.gstatic.com/firebasejs/10.12.3/firebase-app-compat.js",
     "https://www.gstatic.com/firebasejs/10.12.3/firebase-auth-compat.js",
     "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore-compat.js",
   ];
-  function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=rej;document.head.appendChild(s);});}
+  function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=rej;document.head.appendChild(s)})}
   async function boot(){
-    if(!window.firebase || !firebase?.apps){ for(const u of SDKS) await loadScript(u); }
-    try{ if(!firebase.apps.length) firebase.initializeApp(CFG); }catch{}
+    if(!window.firebase||!firebase?.apps){for(const u of SDKS)await loadScript(u)}
+    try{if(!firebase.apps.length)firebase.initializeApp(CFG)}catch{}
+    // ★ Safari対策：ロングポーリング等の設定（初期化直後）
+    try{
+      const _db=firebase.firestore();
+      _db.settings({
+        experimentalAutoDetectLongPolling:true,
+        useFetchStreams:false,
+        ignoreUndefinedProperties:true
+      });
+    }catch(e){console.warn('[firestore settings]',e)}
     startSync();
   }
 
-  const LS_KEY = STORE_KEY;
-  const toTs = v => typeof v==='number'?v:(typeof v==='string'?Date.parse(v):0)||0;
-  const deepEq = (a,b)=>{ try{return JSON.stringify(a)===JSON.stringify(b);}catch{return false;} };
-
-  // Firestoreが嫌う値を排除/変換（undefined -> null、関数/シンボルは除去）
-  function sanitize(obj){
-    return JSON.parse(JSON.stringify(obj, (_k,v)=>{
-      if (typeof v === 'function' || typeof v === 'symbol' || typeof v === 'bigint') return undefined;
-      if (v === undefined) return null;
-      return v;
-    }));
-  }
-
-  // デバウンスユーティリティ
-  function debounce(fn,ms){ let id; return (...a)=>{ clearTimeout(id); id=setTimeout(()=>fn(...a),ms); }; }
+  const LS_KEY=STORE_KEY;
+  const toTs=v=>typeof v==='number'?v:(typeof v==='string'?Date.parse(v):0)||0;
+  const deepEq=(a,b)=>{try{return JSON.stringify(a)===JSON.stringify(b)}catch{return false}};
+  // Firestoreが嫌う値のサニタイズ
+  function sanitize(obj){return JSON.parse(JSON.stringify(obj,(_k,v)=>{if(typeof v==='function'||typeof v==='symbol'||typeof v==='bigint')return undefined;if(v===undefined)return null;return v}))}
+  function debounce(fn,ms){let id;return(...a)=>{clearTimeout(id);id=setTimeout(()=>fn(...a),ms)}}
 
   function startSync(){
-    const auth=firebase.auth(), db=firebase.firestore();
-    const who = document.getElementById('who');
-    const btnLogin = document.getElementById('btn-google');
-    const btnOut   = document.getElementById('btn-signout');
+    const auth=firebase.auth(),db=firebase.firestore();
+    const who=document.getElementById('who');
+    const btnLogin=document.getElementById('btn-google');
+    const btnOut=document.getElementById('btn-signout');
+    if(btnLogin)btnLogin.onclick=()=>auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
+    if(btnOut)btnOut.onclick=()=>auth.signOut();
 
-    if(btnLogin) btnLogin.onclick=()=>auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
-    if(btnOut)   btnOut.onclick=()=>auth.signOut();
+    // サイレントlocalStorage（フック回避）
+    const _origSet=localStorage.setItem.bind(localStorage);
+    const setLocalSilent=st=>{try{_origSet(LS_KEY,JSON.stringify(st))}catch{}};
 
-    const _origSet = localStorage.setItem.bind(localStorage);   // hook回避用（サイレント）
-    const setLocalSilent = st => { try{ _origSet(LS_KEY, JSON.stringify(st)); }catch{} };
-    const _hookedSet = localStorage.setItem.bind(localStorage);
-    localStorage.setItem = function(k,v){
+    // localStorage フック：ユーザー操作→クラウド保存（デバウンス）
+    const _hookedSet=localStorage.setItem.bind(localStorage);
+    localStorage.setItem=function(k,v){
       _hookedSet(k,v);
       if(k===LS_KEY){
         try{
-          const raw = JSON.parse(v);
-          if(raw && typeof raw==='object'){
-            raw._meta = Object.assign({}, raw._meta, {updatedAt: Date.now()});
+          const raw=JSON.parse(v);
+          if(raw&&typeof raw==='object'){
+            raw._meta=Object.assign({},raw._meta,{updatedAt:Date.now()});
             scheduleCloudSave(raw);
           }
         }catch{}
       }
     };
 
-    // 既存saveをラップ
-    if(!window.__SAVE_WRAPPED && typeof window.save==='function'){
+    // save()をラップ（localStorage経由でクラウド保存へ流す）
+    if(!window.__SAVE_WRAPPED&&typeof window.save==='function'){
       window.__SAVE_WRAPPED=true;
-      const _origSave = window.save;
-      window.save = function(...a){
-        state._meta.updatedAt = Date.now();
-        localStorage.setItem(LS_KEY, JSON.stringify(state)); // ← こちらはhookあり（→クラウド保存）
+      const _origSave=window.save;
+      window.save=function(...a){
+        state._meta.updatedAt=Date.now();
+        localStorage.setItem(LS_KEY,JSON.stringify(state)); // ←hookでクラウド保存へ
         return _origSave.apply(this,a);
       };
     }
 
-    // デバウンス付きクラウド保存
-    const _saveCore = async (st)=>{
+    const _saveCore=async(st)=>{
       try{
-        const user=auth.currentUser; if(!user) return;
+        const user=auth.currentUser;if(!user)return;
         const ref=db.collection('users').doc(user.uid).collection('apps').doc('pomotodo');
-        const clean = sanitize(st);
+        const clean=sanitize(st);
         await ref.set({state:clean},{merge:true});
-      }catch(e){ console.warn('[sync] saveToCloud failed:', e); }
+      }catch(e){console.warn('[sync] saveToCloud failed:',e)}
     };
-    const scheduleCloudSave = debounce(_saveCore, 700);
+    const scheduleCloudSave=debounce(_saveCore,700);
 
     let unsub=null;
     function sub(uid){
-      if(unsub){unsub();unsub=null;}
-      if(!uid) return;
+      if(unsub){unsub();unsub=null}
+      if(!uid)return;
       const ref=db.collection('users').doc(uid).collection('apps').doc('pomotodo');
-      unsub = ref.onSnapshot(s=>{
-        if(!s.exists) return;
+      unsub=ref.onSnapshot(s=>{
+        if(!s.exists)return;
         const cloud=s.data()?.state;
-        const cTs=toTs(cloud?._meta?.updatedAt), lTs=toTs(state?._meta?.updatedAt);
-        if(cloud && (cTs>=lTs || !deepEq(cloud,state))){
-          state = cloud;
-          setLocalSilent(state); // ← フックを回避（再保存しない）
+        const cTs=toTs(cloud?._meta?.updatedAt),lTs=toTs(state?._meta?.updatedAt);
+        if(cloud&&(cTs>=lTs||!deepEq(cloud,state))){
+          state=cloud;
+          setLocalSilent(state); // ←再保存ループ防止
           renderAll();
-          console.log('[sync] applied cloud → UI', cTs);
+          console.log('[sync] applied cloud → UI',cTs);
         }
       },err=>console.warn('[sync] onSnapshot error:',err));
     }
 
     auth.onAuthStateChanged(async user=>{
       if(user){
-        if(who) who.textContent=`${user.displayName||user.email} でログイン中`;
-        if(btnLogin) btnLogin.style.display='none';
-        if(btnOut)   btnOut.style.display='';
+        if(who)who.textContent=`${user.displayName||user.email} でログイン中`;
+        if(btnLogin)btnLogin.style.display='none';
+        if(btnOut)btnOut.style.display='';
         sub(user.uid);
-        // 初回：ローカルがあればアップロード（サニタイズして1回だけ）
-        if(toTs(state?._meta?.updatedAt)>0){ scheduleCloudSave(state); }
+        if(toTs(state?._meta?.updatedAt)>0){scheduleCloudSave(state)} // 初回アップロード
       }else{
-        if(who) who.textContent='未ログイン';
-        if(btnLogin) btnLogin.style.display='';
-        if(btnOut)   btnOut.style.display='none';
-        if(unsub){unsub();unsub=null;}
+        if(who)who.textContent='未ログイン';
+        if(btnLogin)btnLogin.style.display='';
+        if(btnOut)btnOut.style.display='none';
+        if(unsub){unsub();unsub=null}
       }
     });
   }
